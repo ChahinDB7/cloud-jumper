@@ -1,6 +1,6 @@
 # Cloud Jumper
 
-A browser recreation of a childhood favorite — **Panfu's "Cloud Number Nine"** — reimagined and supercharged with new weapons, effects, and a dynamic day/night cycle to make the climb far more exciting than I remember it.
+A browser recreation of my childhood favorite — **Panfu's "Cloud Number Nine"** — reimagined and supercharged with new weapons, effects, and a dynamic day/night cycle to make the climb far more exciting than I remember it.
 
 ![Gameplay](short-gameplay.gif)
 
