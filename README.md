@@ -4,11 +4,15 @@ A browser recreation of a childhood favorite — **Panfu's "Cloud Number Nine"**
 
 ![Gameplay](short-gameplay.gif)
 
-## Play
+## Play online
+
+👉 **[chahindb7.github.io/cloud-jumper](https://chahindb7.github.io/cloud-jumper/)**
+
+## How to play
 
 Steer with the mouse (or arrows / A / D). Keep bouncing up. Don't fall.
 
-## Run it
+## Run it yourself
 
 Docker:
 
