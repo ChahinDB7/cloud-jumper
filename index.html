@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Cloud Jumper</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Kick off the background-music fetch as early as possible so it's
+         already buffered by the time the first user interaction unblocks
+         autoplay. Without this the browser deprioritises the audio fetch
+         and the loop stutters in 2–3s after the first click. -->
+    <link rel="preload" href="assets/music/music-1.mp3" as="audio" type="audio/mpeg" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+    <script src="game.js" defer></script>
+</head>
+<body>
+    <div id="app">
+        <canvas id="game"></canvas>
+
+        <!-- Bird is rendered as a DOM <img> so the GIF animates natively.
+             Canvas.drawImage on a GIF freezes at frame 1 in Chromium. -->
+        <img id="bird-overlay" class="bird-overlay is-hidden" src="assets/bird-facing-right.gif" alt="" aria-hidden="true" />
+
+        <div class="hud">
+            <div class="hud-stack">
+                <div class="hud-score">
+                    <div class="hud-score__label">Score</div>
+                    <div class="hud-score__value" id="score">0</div>
+                </div>
+                <div class="hud-highscore">
+                    <div class="hud-highscore__label">Best</div>
+                    <div class="hud-highscore__value" id="highscore">0</div>
+                </div>
+                <div class="hud-coins" aria-label="Coins">
+                    <img class="coin-icon coin-icon--hud" src="assets/coin.png" alt="" aria-hidden="true" />
+                    <span class="hud-coins__value" id="coins">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hotkeys" id="hotkeys" aria-label="Keyboard shortcuts">
+            <button class="pill hotkey-btn" id="btn-jump" type="button" title="Mid-air double jump">
+                <kbd class="kbd">Space</kbd>
+                <span class="hotkey-label">Jump</span>
+            </button>
+            <button class="pill hotkey-btn" id="btn-pause" type="button" title="Pause / resume">
+                <kbd class="kbd">Esc</kbd>
+                <span class="hotkey-label">Pause</span>
+            </button>
+            <button class="pill hotkey-btn" id="btn-mute" type="button" aria-pressed="false" title="Toggle sound">
+                <kbd class="kbd">M</kbd>
+                <span class="hotkey-label" id="mute-label">Sound On</span>
+            </button>
+            <button class="pill hotkey-btn" id="btn-jetpack" type="button" title="Jetpack thrust (when equipped)">
+                <kbd class="kbd">F</kbd>
+                <span class="hotkey-label">Jetpack</span>
+            </button>
+                <button class="pill hotkey-btn" id="btn-fire" type="button" title="Fire weapon (when equipped)">
+                <kbd class="kbd">Mouse 1</kbd>
+                <span class="hotkey-label">Fire</span>
+            </button>
+        </div>
+
+        <div class="fuel-gauge is-hidden" id="fuel-gauge" aria-label="Jetpack fuel">
+            <div class="fuel-gauge__fill" id="fuel-gauge-fill"></div>
+            <div class="fuel-gauge__label" id="fuel-gauge-label">0%</div>
+        </div>
+
+        <div class="overlay overlay--loading" id="overlay-loading">
+            <div class="overlay__card">
+                <div class="overlay__title">Cloud Jumper</div>
+                <div class="overlay__spinner"></div>
+                <div class="overlay__subtitle">Loading clouds…</div>
+            </div>
+        </div>
+
+        <div class="overlay overlay--ready is-hidden" id="overlay-ready">
+            <div class="overlay__card">
+                <div class="overlay__title">Cloud Jumper</div>
+                <div class="overlay__subtitle">
+                    Move the <strong>mouse</strong> (or drag on touch) to steer the panda.<br />
+                    Arrow keys / A &middot; D also work.<br />
+                    <strong>Space</strong> for a mid-air hop &middot; <strong>Esc</strong> to pause.<br />
+                    Grab a rare <strong>jetpack</strong> and hold <strong>F</strong> to fly.<br />
+                    Bounce as high as you can.
+                </div>
+                <button class="btn" id="btn-start" type="button">Start</button>
+                <button class="btn btn--ghost" id="btn-shop" type="button">Shop</button>
+                <button class="btn btn--ghost" id="btn-settings" type="button">Settings</button>
+            </div>
+        </div>
+
+        <div class="overlay overlay--settings is-hidden" id="overlay-settings">
+            <div class="overlay__card overlay__card--settings">
+                <div class="overlay__title">Settings</div>
+                <div class="settings-row">
+                    <span class="settings-label">Double Jump</span>
+                    <button class="toggle" id="toggle-doublejump" role="switch" aria-checked="true" type="button" aria-label="Toggle double jump">
+                        <span class="toggle__thumb"></span>
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Hide Cursor</span>
+                    <button class="toggle" id="toggle-cursor" role="switch" aria-checked="true" type="button" aria-label="Toggle cursor hiding">
+                        <span class="toggle__thumb"></span>
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Sound</span>
+                    <button class="toggle" id="toggle-sound" role="switch" aria-checked="true" type="button" aria-label="Toggle sound">
+                        <span class="toggle__thumb"></span>
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Hit Marker</span>
+                    <button class="toggle" id="toggle-hitmarker" role="switch" aria-checked="false" type="button" aria-label="Toggle hit marker">
+                        <span class="toggle__thumb"></span>
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Difficulty</span>
+                    <div class="segmented" role="group" aria-label="Difficulty">
+                        <button class="segmented__btn" data-difficulty="easy"   type="button">Easy</button>
+                        <button class="segmented__btn" data-difficulty="normal" type="button">Normal</button>
+                        <button class="segmented__btn" data-difficulty="hard"   type="button">Hard</button>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Zoom</span>
+                    <div class="settings-slider">
+                        <input type="range" id="zoom-slider" min="0.5" max="1.5" step="0.05" value="0.8" aria-label="World zoom" />
+                        <span class="settings-slider__value" id="zoom-value">0.80×</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Sensitivity</span>
+                    <div class="settings-slider">
+                        <input type="range" id="sensitivity-slider" min="0.5" max="2" step="0.05" value="1" aria-label="Horizontal sensitivity" />
+                        <span class="settings-slider__value" id="sensitivity-value">1.00×</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Volume</span>
+                    <div class="settings-slider">
+                        <button class="mute-btn" id="settings-mute-btn" type="button" aria-pressed="false" aria-label="Toggle mute">
+                            <svg class="mute-btn__icon mute-btn__icon--on"  viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                <path fill="currentColor" d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4.03v8.06A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/>
+                            </svg>
+                            <svg class="mute-btn__icon mute-btn__icon--off" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                <path fill="currentColor" d="M3 10v4h4l5 4V6L7 10H3zm13.59 2L19 14.41 20.41 13 18 10.59 20.41 8.17 19 6.76 16.59 9.17 14.17 6.76 12.76 8.17 15.17 10.59 12.76 13 14.17 14.41z"/>
+                            </svg>
+                        </button>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" aria-label="Master volume" />
+                        <span class="settings-slider__value" id="volume-value">100%</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Music</span>
+                    <button class="toggle" id="toggle-music" role="switch" aria-checked="true" type="button" aria-label="Toggle music">
+                        <span class="toggle__thumb"></span>
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Music Volume</span>
+                    <div class="settings-slider">
+                        <input type="range" id="music-volume-slider" min="0" max="1" step="0.01" value="0.5" aria-label="Music volume" />
+                        <span class="settings-slider__value" id="music-volume-value">50%</span>
+                    </div>
+                </div>
+                <button class="btn" id="btn-settings-back" type="button">Back</button>
+            </div>
+        </div>
+
+        <div class="overlay overlay--pause is-hidden" id="overlay-pause">
+            <div class="overlay__card">
+                <div class="overlay__title">Paused</div>
+                <div class="overlay__subtitle">
+                    Press <strong>Esc</strong> to resume, or use the buttons below.
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Volume</span>
+                    <div class="settings-slider">
+                        <button class="mute-btn" id="pause-mute-btn" type="button" aria-pressed="false" aria-label="Toggle mute">
+                            <svg class="mute-btn__icon mute-btn__icon--on"  viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                <path fill="currentColor" d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4.03v8.06A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/>
+                            </svg>
+                            <svg class="mute-btn__icon mute-btn__icon--off" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                <path fill="currentColor" d="M3 10v4h4l5 4V6L7 10H3zm13.59 2L19 14.41 20.41 13 18 10.59 20.41 8.17 19 6.76 16.59 9.17 14.17 6.76 12.76 8.17 15.17 10.59 12.76 13 14.17 14.41z"/>
+                            </svg>
+                        </button>
+                        <input type="range" id="pause-volume-slider" min="0" max="1" step="0.01" value="1" aria-label="Master volume" />
+                        <span class="settings-slider__value" id="pause-volume-value">100%</span>
+                    </div>
+                </div>
+                <button class="btn" id="btn-resume" type="button">Resume</button>
+                <button class="btn btn--ghost" id="btn-pause-menu" type="button">Main Menu</button>
+            </div>
+        </div>
+
+        <div class="overlay overlay--gameover is-hidden" id="overlay-gameover">
+            <div class="overlay__card">
+                <div class="overlay__title">Game Over</div>
+                <div class="overlay__score-line">
+                    <span class="overlay__score-label">Score</span>
+                    <span class="overlay__score-value" id="final-score">0</span>
+                </div>
+                <div class="overlay__newhigh is-hidden" id="new-high">New high score!</div>
+                <div class="overlay__score-line overlay__score-line--muted">
+                    <span class="overlay__score-label">Best</span>
+                    <span class="overlay__score-value" id="final-highscore">0</span>
+                </div>
+                <div class="overlay__score-line overlay__score-line--muted">
+                    <span class="overlay__score-label"><img class="coin-icon coin-icon--inline" src="assets/coin.png" alt="" aria-hidden="true" /> Earned</span>
+                    <span class="overlay__score-value" id="coins-earned">0</span>
+                </div>
+                <div class="overlay__score-line overlay__score-line--muted">
+                    <span class="overlay__score-label"><img class="coin-icon coin-icon--inline" src="assets/coin.png" alt="" aria-hidden="true" /> Total</span>
+                    <span class="overlay__score-value" id="coins-total">0</span>
+                </div>
+                <button class="btn" id="btn-restart" type="button">Play Again</button>
+                <button class="btn btn--ghost" id="btn-shop-gameover" type="button">Shop</button>
+                <button class="btn btn--ghost" id="btn-gameover-menu" type="button">Main Menu</button>
+            </div>
+        </div>
+
+        <div class="overlay overlay--shop is-hidden" id="overlay-shop">
+            <div class="overlay__card overlay__card--shop">
+                <div class="overlay__title">Shop</div>
+                <div class="shop-balance" aria-label="Coin balance">
+                    <img class="coin-icon coin-icon--inline" src="assets/coin.png" alt="" aria-hidden="true" />
+                    <span id="shop-coin-balance">0</span>
+                </div>
+                <div class="shop-grid" id="shop-grid"><!-- cards injected by JS --></div>
+                <button class="btn" id="btn-shop-back" type="button">Back</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+services:
+  web:
+    container_name: cloud-jumper
+    restart: unless-stopped
+    build: .
+    ports:
+      - "11111:11111"

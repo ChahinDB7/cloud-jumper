@@ -1,0 +1,826 @@
+/* ============================================================
+   Cloud Jumper — styles.css
+   Fullscreen canvas game. HUD and overlays are DOM-layered
+   above the <canvas>, so they can use GSAP / CSS tweens freely.
+   ============================================================ */
+
+:root {
+    --sky-top: #6fbde3;
+    --sky-bottom: #bfe3f3;
+    --ink: #2b2140;
+    --ink-soft: #58507a;
+    --cream: #fff9ea;
+    --cream-deep: #f4e7c2;
+    --accent: #ffc857;
+    --shadow: 0 12px 30px rgba(43, 33, 64, 0.25);
+    --font-stack: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: var(--font-stack);
+    color: var(--ink);
+    background: var(--sky-bottom);
+    -webkit-font-smoothing: antialiased;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+}
+
+#app {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+}
+
+canvas#game {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: default;
+}
+
+/* ---------- HUD ---------- */
+
+.hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 28px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 2;
+    text-shadow: 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* Top-right HUD stack: Score → Best → Coins, each on its own line,
+   right-aligned. No background card — Score and Best have enough contrast
+   against the sky via ink text + the `.hud` text-shadow. Coins needs a
+   darker outline because gold-on-sky is weak. */
+.hud-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    text-align: right;
+    pointer-events: none;
+}
+
+.hud-coins {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    /* Tight black halo for gold-on-sky readability. Multiple offsets form a
+       faux-outline; the wider soft shadow gives depth against light clouds. */
+    text-shadow:
+        -1px -1px 0 rgba(0, 0, 0, 0.85),
+         1px -1px 0 rgba(0, 0, 0, 0.85),
+        -1px  1px 0 rgba(0, 0, 0, 0.85),
+         1px  1px 0 rgba(0, 0, 0, 0.85),
+         0   2px 0 rgba(0, 0, 0, 0.45),
+         0   0   8px rgba(0, 0, 0, 0.35);
+}
+
+.coin-icon {
+    display: inline-block;
+    vertical-align: -0.18em;   /* nudge down so it sits on the baseline */
+    image-rendering: -webkit-optimize-contrast;   /* sharper at small sizes */
+}
+
+.coin-icon--hud {
+    width: 26px;
+    height: 26px;
+    margin-right: 6px;
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
+}
+
+.coin-icon--inline {
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+}
+
+.hud-score,
+.hud-highscore {
+    line-height: 1;
+}
+
+.hud-score__label,
+.hud-highscore__label {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 6px;
+}
+
+.hud-score__value {
+    font-size: 56px;
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+}
+
+.hud-highscore {
+    opacity: 0.7;
+}
+
+.hud-highscore__value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--ink-soft);
+}
+
+/* ---------- Overlays ---------- */
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background: rgba(40, 60, 90, 0.25);
+    backdrop-filter: blur(8px) saturate(110%);
+    -webkit-backdrop-filter: blur(8px) saturate(110%);
+    transition: opacity 0.25s ease;
+    padding: 16px;
+}
+
+.overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.overlay__card {
+    background: var(--cream);
+    border: 4px solid var(--ink);
+    border-radius: 28px;
+    padding: 36px 44px;
+    min-width: 320px;
+    max-width: 90vw;
+    text-align: center;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+.overlay__title {
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    margin: 0;
+}
+
+.overlay__subtitle {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 380px;
+}
+
+.overlay__spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 5px solid rgba(43, 33, 64, 0.2);
+    border-top-color: var(--ink);
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.overlay__score-line {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.overlay__score-line--muted {
+    opacity: 0.7;
+    font-size: 16px;
+}
+
+.overlay__score-label {
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.overlay__score-value {
+    font-size: 44px;
+    font-weight: 900;
+    color: var(--ink);
+}
+
+.overlay__score-line--muted .overlay__score-value {
+    font-size: 26px;
+    color: var(--ink-soft);
+}
+
+.overlay__newhigh {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #d97a1a;
+    background: var(--accent);
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 2px solid var(--ink);
+}
+
+.overlay__newhigh.is-hidden {
+    display: none;
+}
+
+/* ---------- Keycap & hotkey pill (bottom-right shortcut indicator) ---------- */
+
+.kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    background: linear-gradient(180deg, #ffffff 0%, #e8dfc3 100%);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    box-shadow: 0 2px 0 var(--ink), inset 0 -2px 0 rgba(43, 33, 64, 0.08);
+    line-height: 1;
+    user-select: none;
+}
+
+.hotkeys {
+    position: absolute;
+    bottom: 18px;
+    right: 20px;
+    z-index: 20;  /* above overlays so it works on every screen */
+    display: flex;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.hotkeys.is-hidden {
+    display: none;
+}
+
+/* Shared "ink-outlined cream pill" used for hotkeys, HUD blocks, and any
+   other on-canvas chrome that needs to stay readable against the sky. Any
+   interactivity (cursor, hover, pressed states) is layered on top via
+   modifier classes like `.hotkey-btn`. */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 249, 234, 0.92);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 9px 15px 9px 13px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    box-shadow: 0 3px 0 var(--ink);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.hotkey-btn {
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s;
+}
+
+.hotkey-btn:hover {
+    background: #ffffff;
+}
+
+.hotkey-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--ink);
+}
+
+.hotkey-btn:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.hotkey-btn[aria-pressed="true"] {
+    background: rgba(230, 220, 200, 0.92);
+    color: var(--ink-soft);
+}
+
+.hotkey-btn[aria-pressed="true"] .kbd {
+    background: linear-gradient(180deg, #ded4b8 0%, #b7ad93 100%);
+    color: var(--ink-soft);
+}
+
+.hotkey-btn.is-active {
+    background: #ffd37a;
+    box-shadow: 0 3px 0 var(--ink), 0 0 0 3px rgba(255, 200, 87, 0.55);
+}
+
+/* ---------- Bird (DOM overlay so the GIF animates) ---------- */
+
+.bird-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+    transform-origin: 50% 50%;
+    /* DO NOT set will-change: transform here. Chromium promotes the element
+       to its own compositor layer, which snapshots the GIF as a static
+       texture and freezes animation at frame 1. */
+}
+/* Park the <img> far off-screen instead of display:none or visibility:hidden.
+   Both of those can cause Chromium to pause the GIF decoder; parking keeps
+   the element actively painting so animation state stays alive. We still
+   force a fresh src on every spawn for belt-and-suspenders. */
+.bird-overlay.is-hidden {
+    left: -99999px;
+    top: -99999px;
+}
+
+/* ---------- Jetpack fuel gauge (vertical, right edge) ---------- */
+
+.fuel-gauge {
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px;
+    height: 240px;
+    background: rgba(30, 30, 50, 0.35);
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    overflow: hidden;
+    z-index: 3;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: var(--shadow);
+}
+
+.fuel-gauge.is-hidden { display: none; }
+
+.fuel-gauge__fill {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 100%;
+    background: #2ecc71;
+    transition: height 0.08s linear, background 0.2s linear;
+}
+
+.fuel-gauge__label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+    pointer-events: none;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+    .fuel-gauge { width: 36px; height: 190px; right: 12px; }
+    .fuel-gauge__label { font-size: 12px; }
+}
+
+@media (max-width: 520px) {
+    .hotkeys { bottom: 10px; right: 10px; }
+    .hotkey-btn { font-size: 12px; padding: 4px 12px 4px 4px; }
+    .kbd { min-width: 22px; height: 22px; font-size: 11px; }
+}
+
+/* ---------- Button ---------- */
+
+.btn {
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    background: #fff;
+    border: 4px solid var(--ink);
+    border-radius: 999px;
+    padding: 14px 36px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--ink);
+    transform: translateY(0);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s;
+    margin-top: 6px;
+}
+
+.btn:hover {
+    background: var(--accent);
+}
+
+.btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--ink);
+}
+
+.btn:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+}
+
+.btn--ghost {
+    background: transparent;
+    border-width: 3px;
+    box-shadow: 0 4px 0 var(--ink);
+    font-size: 16px;
+    padding: 10px 28px;
+}
+
+.btn--ghost:hover {
+    background: var(--cream-deep);
+}
+
+/* ---------- Settings overlay ---------- */
+
+.overlay__card--settings {
+    gap: 14px;
+    min-width: 340px;
+    max-width: 92vw;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    width: 100%;
+    padding: 4px 2px;
+}
+
+.settings-label {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+}
+
+.settings-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.settings-slider input[type="range"] {
+    width: 140px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.settings-slider input[type="range"]:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    accent-color: var(--ink-soft);
+}
+
+.settings-slider input[type="range"]:disabled + .settings-slider__value,
+.settings-slider__value.is-disabled {
+    opacity: 0.5;
+}
+
+.settings-slider__value {
+    min-width: 46px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--ink-soft);
+}
+
+/* Speaker-icon mute toggle. Two stacked SVG icons; visibility swaps on
+   aria-pressed so muting doesn't touch the volume slider value. */
+.mute-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.mute-btn:hover { background: rgba(0, 0, 0, 0.06); }
+.mute-btn__icon { display: none; }
+.mute-btn[aria-pressed="false"] .mute-btn__icon--on  { display: inline-block; }
+.mute-btn[aria-pressed="true"]  .mute-btn__icon--off { display: inline-block; color: var(--ink-soft); }
+
+/* iOS-style toggle */
+.toggle {
+    position: relative;
+    width: 52px;
+    height: 30px;
+    background: #c8c0aa;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.22s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.toggle[aria-checked="true"] {
+    background: #34c759;
+}
+
+.toggle__thumb {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    transition: transform 0.22s cubic-bezier(.3, 1.4, .6, 1);
+    box-shadow: 0 2px 0 rgba(43, 33, 64, 0.15);
+    box-sizing: border-box;
+}
+
+.toggle[aria-checked="true"] .toggle__thumb {
+    transform: translateX(22px);
+}
+
+.toggle:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+}
+
+/* Segmented control */
+.segmented {
+    display: inline-flex;
+    background: var(--cream-deep);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.segmented__btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+}
+
+.segmented__btn:hover {
+    background: rgba(43, 33, 64, 0.08);
+}
+
+.segmented__btn[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--cream);
+}
+
+.segmented__btn[aria-pressed="true"]:hover {
+    background: var(--ink);
+}
+
+.segmented__btn:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ---------- Responsive tweaks ---------- */
+
+@media (max-width: 520px) {
+    .hud {
+        padding: 14px 18px;
+    }
+    .hud-score__value {
+        font-size: 40px;
+    }
+    .hud-highscore__value {
+        font-size: 22px;
+    }
+    .hud-coins {
+        font-size: 18px;
+    }
+    .overlay__title {
+        font-size: 34px;
+    }
+    .overlay__card {
+        padding: 28px 28px;
+        min-width: 280px;
+    }
+}
+
+/* ============================================================
+   Shop — grid of weapon cards (see game.js ShopUI).
+   Each card's border / rarity chip / equipped-button fill all
+   derive from a single `--rarity` custom property, so adding a
+   new rarity is just a data-rarity selector below.
+   ============================================================ */
+.overlay__card--shop {
+    min-width: 360px;
+    max-width: 94vw;
+    gap: 16px;
+}
+.shop-balance {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 18px;
+}
+/* Horizontal carousel — flex + overflow-x so touch / trackpad / mouse-drag
+   all swipe sideways. Mouse drag is wired up in ShopUI. scroll-snap keeps
+   cards tidy on release. Browser default scrollbar is hidden for polish. */
+.shop-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 14px;
+    width: 100%;
+    max-width: 760px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 18px 4px 12px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink) transparent;
+    cursor: grab;
+    user-select: none;
+}
+.shop-grid.is-dragging { cursor: grabbing; scroll-snap-type: none; }
+.shop-grid::-webkit-scrollbar { height: 6px; }
+.shop-grid::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 3px; }
+.shop-grid::-webkit-scrollbar-track { background: transparent; }
+.shop-card {
+    --rarity: var(--ink);
+    background: #fff;
+    border: 4px solid var(--rarity);
+    border-radius: 18px;
+    padding: 12px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 0 var(--ink);
+    position: relative;
+    flex: 0 0 170px;
+    scroll-snap-align: start;
+}
+/* Subtle status ribbon on the currently-equipped card. */
+.shop-card[data-equipped="true"]::after {
+    content: "Equipped";
+    position: absolute;
+    top: -20px;
+    right: 10px;
+    background: var(--accent);
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 2px solid var(--ink);
+    box-shadow: 0 2px 0 var(--ink);
+}
+.shop-card[data-rarity="legendary"] { --rarity: rgb(255, 234, 0); }
+.shop-card[data-rarity="rare"]      { --rarity: rgb(76, 95, 196); }
+.shop-card__rarity {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--rarity);
+    /* White text reads better on darker rarities (e.g. rare blue). The
+       legendary yellow is bright enough that ink-on-yellow looks sharper —
+       see per-rarity override below. */
+    color: #fff;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 2px solid var(--ink);
+}
+.shop-card[data-rarity="legendary"] .shop-card__rarity {
+    color: var(--ink);
+    text-shadow: none;
+}
+.shop-card__img-wrap {
+    height: 72px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.shop-card__img {
+    max-height: 72px;
+    max-width: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    /* Browsers default to letting you drag an <img> as a file — that hijacks
+       the carousel's click-drag scroll. Disable drag + selection on every
+       engine so mouse drag is reserved for scrolling the shop row. */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -o-user-drag: none;
+    -webkit-touch-callout: none;
+    pointer-events: none;
+}
+.shop-card__img-empty {
+    font-size: 34px;
+    font-weight: 900;
+    color: var(--ink);
+    opacity: 0.35;
+}
+.shop-card__name { font-weight: 900; font-size: 15px; flex: 1; }
+.shop-card__price {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    font-size: 14px;
+}
+/* Future per-weapon ammo row — renders only when we wire it up. */
+.shop-card__ammo {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    border-top: 2px dashed var(--ink);
+    padding-top: 6px;
+}
+.shop-card__action {
+    font-size: 14px;
+    padding: 8px 20px;
+    margin-top: 4px;
+    width: 100%;;
+    box-shadow: 0 4px 0 var(--ink);
+}
+.shop-card__action[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: 0 2px 0 var(--ink);
+}
+/* Unequip + already-equipped states share a generic accent colour
+   independent of rarity — rarity-coloured fills clashed with the ink text
+   (ink-on-blue was unreadable). */
+.shop-card__action[data-action="unequip"],
+.shop-card__action[data-action="equipped"] {
+    background: var(--cream-deep);
+    color: var(--ink);
+}
+.shop-card__action[data-action="unequip"]:hover {
+    background: var(--accent);
+}

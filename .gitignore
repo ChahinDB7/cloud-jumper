@@ -1,0 +1,10 @@
+ignore*
+.idea/
+.vscode/
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
+docs
+*claude*
+*CLAUDE*

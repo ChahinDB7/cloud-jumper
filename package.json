@@ -1,0 +1,8 @@
+{
+  "name": "cloud-jumper",
+  "scripts": {
+    "Docker Down": "docker compose down",
+    "Docker Up": "docker compose up -d",
+    "Docker Build-Up": "docker compose up -d --build --remove-orphans"
+  }
+}
